@@ -1,5 +1,5 @@
 use chrono::prelude::*;
-use clap::{Parser, value_parser};
+use clap::{value_parser, Parser};
 use clio::ClioPath;
 
 #[derive(Parser, Debug)]
@@ -29,6 +29,6 @@ pub struct Args {
 fn parse_cli_start_date(
     s: &str,
 ) -> Result<DateTime<FixedOffset>, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    s.parse().or(Err("Could not parse your input to a valid date.".into()))
+    s.parse()
+        .or(Err("Could not parse your input to a valid date.".into()))
 }
-

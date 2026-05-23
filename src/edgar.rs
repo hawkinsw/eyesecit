@@ -149,7 +149,9 @@ pub fn cik_from_extensions(extensions: &ExtensionMap) -> Option<String> {
     None
 }
 
-pub fn acceptance_datetime_from_extensions(extensions: &ExtensionMap) -> Option<DateTime<FixedOffset>> {
+pub fn acceptance_datetime_from_extensions(
+    extensions: &ExtensionMap,
+) -> Option<DateTime<FixedOffset>> {
     extensions
         .get("edgar")
         .and_then(|edgar| edgar.get("xbrlFiling"))
@@ -158,4 +160,3 @@ pub fn acceptance_datetime_from_extensions(extensions: &ExtensionMap) -> Option<
         .and_then(|accepted_date| NaiveDateTime::parse_from_str(accepted_date, "%Y%m%d%H%M%S").ok())
         .map(|naive_accepted_datetime| naive_accepted_datetime.and_utc().fixed_offset())
 }
-
