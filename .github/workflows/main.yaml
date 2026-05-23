@@ -1,0 +1,19 @@
+on: [push, pull_request]
+
+name: Continuous Integration
+
+jobs:
+  check-tests:
+    name: Cargo Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test
+        run: cargo test
+  check-format:
+    name: Cargo Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Format
+        run: cargo fmt
