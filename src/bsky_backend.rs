@@ -1,6 +1,7 @@
 use atrium_api::types::string::Datetime;
 use atrium_api::types::string::RecordKey;
 use bsky_sdk::record::Record;
+use bsky_sdk::rich_text::RichText;
 use bsky_sdk::BskyAgent;
 use serde::Deserialize;
 use serde::Serialize;
@@ -40,23 +41,42 @@ impl BackendConfig for BskyBackendConfig {
     }
 }
 
+impl BskyBackend {
+    pub async fn format_msg(&self, msg: String) -> Item105Result<RichText> {
+        RichText::new_with_detect_facets(msg)
+            .await
+            .map_err(|e| Item105Error { msg: e.to_string() })
+    }
+
+    pub async fn record_for_msg(
+        &self,
+        msg: String,
+    ) -> Item105Result<atrium_api::app::bsky::feed::post::RecordData> {
+        let formatted_msg = self.format_msg(msg).await?;
+
+        Ok(atrium_api::app::bsky::feed::post::RecordData {
+            created_at: Datetime::now(),
+            embed: None,
+            entities: None,
+            facets: formatted_msg.facets,
+            labels: None,
+            langs: None,
+            reply: None,
+            tags: None,
+            text: formatted_msg.text,
+        })
+    }
+}
 impl Backend for BskyBackend {
     async fn post(&self, msg: String) -> Item105Result<()> {
         let agent = self.agent.as_ref().ok_or(Item105Error {
             msg: "No agent present in backend".into(),
         })?;
+
+        let post_record = self.record_for_msg(msg).await?;
+
         agent
-            .create_record(atrium_api::app::bsky::feed::post::RecordData {
-                created_at: Datetime::now(),
-                embed: None,
-                entities: None,
-                facets: None,
-                labels: None,
-                langs: None,
-                reply: None,
-                tags: None,
-                text: msg,
-            })
+            .create_record(post_record)
             .await
             .map_err(|e| Item105Error {
                 msg: format!("Could not post: {e}"),
@@ -107,5 +127,33 @@ impl Backend for BskyBackend {
             msg: format!("Could not update status: {e}"),
         })?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::bsky_backend::BskyBackend;
+
+    #[tokio::test]
+    async fn test_rich_text() {
+        let backend = BskyBackend {
+            user: "user".to_string(),
+            pass: "pass".to_string(),
+            agent: None,
+        };
+        let msg = "@item105.eyesec.it for https://www.wsj.com/.";
+
+        let r = backend
+            .format_msg(msg.to_string())
+            .await
+            .expect("Should be able to build record");
+
+        let segments = r.segments();
+        assert_eq!(segments.len(), 4);
+
+        assert!(segments[0].text == "@item105.eyesec.it" && segments[0].mention().is_some());
+        assert!(segments[1].text == " for ");
+        assert!(segments[2].text == "https://www.wsj.com/" && segments[2].link().is_some());
+        assert!(segments[3].text == ".");
     }
 }
