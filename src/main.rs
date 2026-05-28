@@ -230,7 +230,7 @@ async fn main() -> Result<(), Item105Error> {
                                         }
 
                                         let filing_msg = if let Some(filing_link) = filing_link {
-                                            format!("See the filing at {filing_link}")
+                                            format!(" See the filing at {filing_link}")
                                         } else {
                                             "".to_string()
                                         };
